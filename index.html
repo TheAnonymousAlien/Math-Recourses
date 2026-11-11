@@ -83,12 +83,20 @@
             if (catalogoCargado) { pintarTarjetas(misJuegos); return; }
             const contador = document.getElementById("contador-juegos");
             try {
-                const res = await fetch("https://github.com");
-                const datos = await res.json();
-                misJuegos = datos.tree
-                    .filter(item => item.path.startsWith("offline/") && item.path.endsWith(".html"))
-                    .map(item => ({ name: formatearNombre(item.path.replace("offline/", "")), url: item.path }))
-                    .sort((a, b) => a.name.localeCompare(b.name));
+                const resLocal = await fetch("juegos.json");
+                if (resLocal.ok) {
+                    const archivos = await resLocal.json();
+                    misJuegos = archivos
+                        .map(archivo => ({ name: formatearNombre(archivo), url: "offline/" + archivo }))
+                        .sort((a, b) => a.name.localeCompare(b.name));
+                } else {
+                    const resGit = await fetch("https://github.com");
+                    const datos = await resGit.json();
+                    misJuegos = datos.tree
+                        .filter(item => item.path.startsWith("offline/") && item.path.endsWith(".html"))
+                        .map(item => ({ name: formatearNombre(item.path.replace("offline/", "")), url: item.path }))
+                        .sort((a, b) => a.name.localeCompare(b.name));
+                }
                 catalogoCargado = true;
                 contador.textContent = misJuegos.length + " juegos disponibles en servidor local";
                 pintarTarjetas(misJuegos);
@@ -96,6 +104,7 @@
                 contador.textContent = "Error al cargar la lista de juegos";
             }
         }
+
 
         function filtrarJuegos() {
             const texto = document.getElementById("buscador-juegos").value.toLowerCase();
