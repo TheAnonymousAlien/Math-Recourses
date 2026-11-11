@@ -79,32 +79,33 @@
             });
         }
         
-        async function construirCatalogoLocal() {
+              async function construirCatalogoLocal() {
             if (catalogoCargado) { pintarTarjetas(misJuegos); return; }
             const contador = document.getElementById("contador-juegos");
             try {
-                const resLocal = await fetch("juegos.json");
-                if (resLocal.ok) {
-                    const archivos = await resLocal.json();
-                    misJuegos = archivos
-                        .map(archivo => ({ name: formatearNombre(archivo), url: "offline/" + archivo }))
-                        .sort((a, b) => a.name.localeCompare(b.name));
-                } else {
+                const resLocal = await fetch("./juegos.json?t=" + Date.now());
+                if (!resLocal.ok) {
+                    contador.textContent = "Fallo en juegos.json (Código: " + resLocal.status + "). Probando respaldo...";
                     const resGit = await fetch("https://github.com");
+                    if (!resGit.ok) throw new Error("GitHub bloqueado o límite alcanzado (" + resGit.status + ")");
                     const datos = await resGit.json();
                     misJuegos = datos.tree
                         .filter(item => item.path.startsWith("offline/") && item.path.endsWith(".html"))
                         .map(item => ({ name: formatearNombre(item.path.replace("offline/", "")), url: item.path }))
+                        .sort((a, b) => a.name.localeCompare(b.name));
+                } else {
+                    const archivos = await resLocal.json();
+                    misJuegos = archivos
+                        .map(archivo => ({ name: formatearNombre(archivo), url: "offline/" + archivo }))
                         .sort((a, b) => a.name.localeCompare(b.name));
                 }
                 catalogoCargado = true;
                 contador.textContent = misJuegos.length + " juegos disponibles en servidor local";
                 pintarTarjetas(misJuegos);
             } catch (e) {
-                contador.textContent = "Error al cargar la lista de juegos";
+                contador.textContent = "Detalle del error: " + e.message;
             }
         }
-
 
         function filtrarJuegos() {
             const texto = document.getElementById("buscador-juegos").value.toLowerCase();
